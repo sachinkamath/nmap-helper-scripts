@@ -1,7 +1,8 @@
 from libnmap.parser import NmapParser, NmapParserException
 from libnmap.objects.service import NmapService
 from collections import defaultdict
-
+import pprint
+pp = pprint.PrettyPrinter()
 ###########################################################
 # <<<<< TO-D0 >>>>>>>>
 # 1. Write Custom Exceptions
@@ -30,7 +31,6 @@ def _stats(report):
 
 def parse_xml(filepath):
     '''Parses an XML file and finds information about the hosts and returns the scan object'''
-
     try:
         nmap_report = NmapParser.parse_fromfile(filepath)
     except TypeError:
@@ -38,18 +38,26 @@ def parse_xml(filepath):
         return 0
         sys.exit()
     except NmapParserException:
-        print "[!] Bad XML file. The scan was probably interrupted."
+        print "[!] Bad XML file. The nmap scan was probably interrupted."
         return 0
 
     _stats(nmap_report)
     return nmap_report
 
 
-def map_http_ports(report):
+def map_ports(report):
     '''Maps hostname to the list of open ports available'''
     portmap = defaultdict(list)
+
+    # Loop and find all the hosts from the XML report.
     for host in report.hosts:
+        # For every attribute in the services, map the ports to service.
         for attr in host.services:
-            if attr.get_dict()['service'] in ['http', 'https']:
-                portmap[host.hostnames[0]].append((attr.get_dict()['port'], attr.get_dict()['service']))
+            # pp = pprint.PrettyPrinter()
+            # pp.pprint(attr.get_dict())
+            HOSTNAME = host.hostnames[0] or host.address
+            PORTNUM = attr.get_dict()['port']
+            SERVICE = attr.get_dict()['service']
+            # If HTTP was passed as a service, add https targets by default.
+            portmap[HOSTNAME].append((PORTNUM, SERVICE))
     return dict(portmap)
